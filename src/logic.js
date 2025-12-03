@@ -1,7 +1,6 @@
 import * as XLSX from 'xlsx';
 
-// --- CONFIGURAÇÃO DE IDENTIDADE ÚNICA ---
-// Preencha com os dados reais para o sistema identificar vocês
+// --- SEUS DADOS REAIS ---
 const IDENTIFICADORES_ESPECIAIS = {
   GABRIEL_MARQUES: ['gabrielscm2005@gmail.com', '21971576860', 'gabriel'], 
   GABI: ['gabiflutter@gmail.com', '21998409073', 'gabi'] 
@@ -53,13 +52,10 @@ export const lerPlanilha = async (file) => {
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        // raw: false garante que datas venham formatadas como texto se possível
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
-        
         const normalizedData = jsonData.map(row => {
           const newRow = {};
           Object.keys(row).forEach(key => {
-            // Remove quebras de linha e espaços para facilitar a busca
             const cleanKey = key.replace(/\r?\n|\r/g, " ").toUpperCase().trim();
             newRow[cleanKey] = row[key];
           });
@@ -80,13 +76,9 @@ export const gerarRascunho = (df, ministeriosAtivos = ['PRODUÇÃO', 'FILMAGEM',
   
   const sampleRow = df[0];
   
-  // --- DETECÇÃO DE DATAS POR REGEX (RADAR) ---
-  // Busca qualquer coluna que tenha formato de data "DD/MM" no nome
-  const colunasDatas = Object.keys(sampleRow).filter(col => {
-      return /\d{1,2}\/\d{1,2}/.test(col);
-  });
+  // Radar de Datas
+  const colunasDatas = Object.keys(sampleRow).filter(col => /\d{1,2}\/\d{1,2}/.test(col));
 
-  // Fallback: Se não achar datas, tenta o método antigo de exclusão
   if (colunasDatas.length === 0) {
       const colunasIgnorar = ['CARIMBO', 'E-MAIL', 'CELULAR', 'WHATSAPP', 'NOME', 'ÁREA', 'ID', 'OBSERVAÇÕES'];
       const fallbackCols = Object.keys(sampleRow).filter(col => !colunasIgnorar.some(ig => col.includes(ig)));
@@ -109,23 +101,13 @@ export const gerarRascunho = (df, ministeriosAtivos = ['PRODUÇÃO', 'FILMAGEM',
   const ORDEM_HIERARQUIA = ['PRODUÇÃO', 'FILMAGEM', 'PROJEÇÃO', 'TAKE', 'ILUMINAÇÃO'];
 
   colunasDatas.forEach(colunaData => {
-    // Busca quem marcou SIM (flexível)
     const diaDf = df.filter(row => {
         const val = String(row[colunaData] || "").toUpperCase().trim();
         return val === 'SIM' || val === 'S' || val === 'YES';
     });
     
-    // Lista 'TODOS' para o Dropdown (Sem filtro de área)
-    const todosDoDia = new Set();
-    diaDf.forEach(row => {
-      const nomeIdentificado = identificarPessoa(row);
-      if (nomeIdentificado) todosDoDia.add(nomeIdentificado);
-    });
-    availableServersPerDay[colunaData] = { 'TODOS': [...todosDoDia].sort() };
-
-    // Lista para Automação (Robô) - Separada por área
+    const dailyFullList = {}; 
     const dailyAutoPool = {}; 
-    const dailyFullList = {}; // Lista completa por área para dropdown específico
 
     Object.keys(numServidoresPorArea).forEach(areaKey => {
       const servidoresAreaAuto = [];
@@ -146,10 +128,9 @@ export const gerarRascunho = (df, ministeriosAtivos = ['PRODUÇÃO', 'FILMAGEM',
         else if (areaKey === 'ILUMINAÇÃO') match = palavras.some(p => p.startsWith('ILUMIN') || p === 'LUZ');
 
         if (match) {
-          servidoresAreaFull.push(nomeIdentificado);
-          // Robô respeita limite de escalas
+          servidoresAreaFull.push(nomeIdentificado); 
           if ((shiftsCount[nomeIdentificado] || 0) < MAX_SHIFTS_AUTO) {
-            servidoresAreaAuto.push(nomeIdentificado);
+            servidoresAreaAuto.push(nomeIdentificado); 
           }
         }
       });
@@ -158,14 +139,12 @@ export const gerarRascunho = (df, ministeriosAtivos = ['PRODUÇÃO', 'FILMAGEM',
       dailyFullList[areaKey] = [...new Set(servidoresAreaFull)].sort();
     });
 
-    // Mescla as listas específicas no objeto principal
-    availableServersPerDay[colunaData] = { ...availableServersPerDay[colunaData], ...dailyFullList };
+    availableServersPerDay[colunaData] = dailyFullList;
     
     const allocatedForDay = new Set();
     const areaCounters = {};
     Object.keys(numServidoresPorArea).forEach(k => areaCounters[k] = 0);
 
-    // Lógica Casal
     let casalAtivo = false;
     let gabrielArea = null; 
     const gabrielInProd = dailyAutoPool['PRODUÇÃO']?.includes(GABRIEL);
@@ -181,7 +160,6 @@ export const gerarRascunho = (df, ministeriosAtivos = ['PRODUÇÃO', 'FILMAGEM',
         shiftsCount[GABI] = (shiftsCount[GABI] || 0) + 1;
     }
 
-    // Alocação Geral
     ORDEM_HIERARQUIA.forEach(area => {
         if (!numServidoresPorArea[area]) return; 
 
@@ -189,7 +167,6 @@ export const gerarRascunho = (df, ministeriosAtivos = ['PRODUÇÃO', 'FILMAGEM',
         const pool = dailyAutoPool[area] || [];
         let slotsPreenchidos = 0;
 
-        // Encaixe Gabriel
         if (casalAtivo && area === gabrielArea) {
             let funcao = area;
             if (area === 'FILMAGEM') funcao = `Câmera ${slotsPreenchidos + 1}`;
@@ -197,14 +174,12 @@ export const gerarRascunho = (df, ministeriosAtivos = ['PRODUÇÃO', 'FILMAGEM',
             slotsPreenchidos++;
         }
 
-        // Encaixe Gabi
         if (casalAtivo && area === 'TAKE') {
             let funcao = slotsPreenchidos === 0 ? "Fotografo" : "Suporte";
             escalaFinalSlots.push({ Data: colunaData, Funcao: funcao, Voluntario: GABI, AreaOriginal: area });
             slotsPreenchidos++;
         }
 
-        // Preenchimento restante
         for (let i = slotsPreenchidos; i < maxSlots; i++) {
             let funcao = area;
             if (area === 'TAKE') funcao = i === 0 ? "Fotografo" : "Suporte";
