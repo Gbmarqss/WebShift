@@ -9,7 +9,6 @@ Desenvolvido para automatizar a criação de escalas complexas, ele utiliza algo
 ## 🚀 Funcionalidades Principais
 
 - **Automação Inteligente:** Lê planilhas de disponibilidade (.xlsx) e gera uma escala inicial automaticamente.
-- **Lógica de Casal/Dupla:** Prioriza escalar pessoas específicas juntas (ex: Gabriel & Gabi) quando possível.
 - **Prevenção de Burnout:** Alerta visual (🔥) quando um voluntário excede o limite saudável de escalas no mês (5+).
 - **Detecção de Conflitos:** Bloqueia exportação se a mesma pessoa estiver em duas funções no mesmo dia.
 - **Design Responsivo:** Interface moderna, adaptada para Celular e Desktop com Dark Mode automático.
