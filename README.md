@@ -4,7 +4,7 @@ O **WebShift** é uma aplicação web moderna para **gestão inteligente de esca
 
 Desenvolvido para automatizar a criação de escalas complexas, ele utiliza algoritmos para alocar pessoas em funções como Produção, Filmagem, Take e Iluminação, respeitando limites de atuação e regras de disponibilidade.
 
-![WebShift Preview](./public/favicon.png)
+![WebShift Preview](./public/favicon.jpg)
 
 ## 🚀 Funcionalidades Principais
 
